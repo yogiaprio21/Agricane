@@ -409,6 +409,7 @@ export class MonitoringService {
   }
 
   async updateDroneFlight(id: string, data: Partial<{
+    flightDate: Date;
     duration: number;
     altitudeMeters: number;
     notes: string;
@@ -416,9 +417,17 @@ export class MonitoringService {
   }>) {
     await this.getDroneFlightById(id);
 
+    const updateData = {
+      ...(data.flightDate !== undefined ? { flightDate: data.flightDate } : {}),
+      ...(data.duration !== undefined ? { duration: data.duration } : {}),
+      ...(data.altitudeMeters !== undefined ? { altitudeMeters: data.altitudeMeters } : {}),
+      ...(data.notes !== undefined ? { notes: data.notes } : {}),
+      ...(data.imageCount !== undefined ? { imageCount: data.imageCount } : {}),
+    };
+
     return this.prisma.droneFlight.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         field: {
           select: {

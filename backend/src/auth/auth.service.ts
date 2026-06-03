@@ -21,6 +21,10 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
+    if (!this.configService.get<boolean>('auth.allowPublicRegister')) {
+      throw new ForbiddenException('Public registration is disabled');
+    }
+
     const existingUser = await this.prisma.user.findUnique({
       where: { email: registerDto.email },
     });

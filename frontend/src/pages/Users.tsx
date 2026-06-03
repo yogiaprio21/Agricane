@@ -17,7 +17,7 @@ import {
 } from '../components/common';
 import { userService } from '../services/user.service';
 import { User, Role } from '../types';
-import { Plus, Edit, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Plus, Edit, UserMinus, UserCheck, UserX } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 
@@ -128,11 +128,11 @@ export const Users: React.FC = () => {
 
     try {
       await userService.delete(userToDelete.id);
-      setSuccess('User deleted successfully');
+      setSuccess('User deactivated successfully');
       setUserToDelete(null);
       loadUsers();
-    } catch (error) {
-      setError('Failed to delete user');
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to deactivate user');
     }
   };
 
@@ -151,6 +151,7 @@ export const Users: React.FC = () => {
       case 'ADMIN': return 'danger';
       case 'MANAGER': return 'warning';
       case 'AGRONOMIST': return 'success';
+      case 'VIEWER': return 'info';
       default: return 'info';
     }
   };
@@ -245,14 +246,14 @@ export const Users: React.FC = () => {
                   <IconButton
                     label={
                       currentUser?.id === user.id
-                        ? 'You cannot delete your own account'
-                        : `Delete ${user.firstName} ${user.lastName}`
+                        ? 'You cannot deactivate your own account'
+                        : `Deactivate ${user.firstName} ${user.lastName}`
                     }
                     onClick={() => setUserToDelete(user)}
                     variant="danger"
-                    disabled={currentUser?.id === user.id}
+                    disabled={currentUser?.id === user.id || !user.isActive}
                   >
-                    <Trash2 size={18} />
+                    <UserMinus size={18} />
                   </IconButton>
                 </div>
               ),
@@ -314,6 +315,7 @@ export const Users: React.FC = () => {
             { value: Role.AGRONOMIST, label: 'Agronomist' },
             { value: Role.DRONE_OPERATOR, label: 'Drone Operator' },
             { value: Role.TECHNICIAN, label: 'Technician' },
+            { value: Role.VIEWER, label: 'Viewer Demo' },
           ]}
         />
         <Select
@@ -329,9 +331,9 @@ export const Users: React.FC = () => {
 
       <ConfirmDialog
         isOpen={!!userToDelete}
-        title="Delete user"
-        description={`Delete ${userToDelete?.firstName || 'this'} ${userToDelete?.lastName || 'user'}? This action removes the account from the system.`}
-        confirmLabel="Delete user"
+        title="Deactivate user"
+        description={`Deactivate ${userToDelete?.firstName || 'this'} ${userToDelete?.lastName || 'user'}? Their historical records stay available, but the account can no longer sign in.`}
+        confirmLabel="Deactivate user"
         onConfirm={handleConfirmDelete}
         onClose={() => setUserToDelete(null)}
       />

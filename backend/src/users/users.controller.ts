@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt.auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
+import { CurrentUser } from '../auth/decorators/current-user.decorators';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -60,10 +61,10 @@ export class UsersController {
 
   @Delete(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Delete user (Admin only)' })
-  @ApiResponse({ status: 200, description: 'User deleted' })
+  @ApiOperation({ summary: 'Deactivate user (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User deactivated' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.usersService.remove(id, user.id);
   }
 }

@@ -70,6 +70,7 @@ export function validateEnv(config: Environment) {
   validateNumericEnv(config, 'CACHE_MAX_ITEMS', 1);
   validateNumericEnv(config, 'API_RATE_LIMIT_TTL', 1);
   validateNumericEnv(config, 'API_RATE_LIMIT_MAX', 1);
+  validateBooleanEnv(config, 'ALLOW_PUBLIC_REGISTER');
 
   return config;
 }

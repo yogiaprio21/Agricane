@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -121,14 +122,36 @@ export class UsersService {
     return user;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, currentUserId?: string) {
+    const user = await this.findOne(id);
 
-    await this.prisma.user.delete({
+    if (currentUserId && id === currentUserId) {
+      throw new BadRequestException('You cannot deactivate your own account');
+    }
+
+    if (user.role === 'ADMIN' && user.isActive) {
+      const activeAdmins = await this.prisma.user.count({
+        where: {
+          role: 'ADMIN',
+          isActive: true,
+          id: { not: id },
+        },
+      });
+
+      if (activeAdmins === 0) {
+        throw new BadRequestException('At least one active admin account is required');
+      }
+    }
+
+    await this.prisma.user.update({
       where: { id },
+      data: {
+        isActive: false,
+        refreshToken: null,
+      },
     });
 
-    return { message: 'User deleted successfully' };
+    return { message: 'User deactivated successfully' };
   }
 
   async findByEmail(email: string) {

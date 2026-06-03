@@ -19,6 +19,13 @@ export default () => ({
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
+
+  auth: {
+    allowPublicRegister:
+      process.env.ALLOW_PUBLIC_REGISTER === undefined
+        ? process.env.NODE_ENV !== 'production'
+        : process.env.ALLOW_PUBLIC_REGISTER === 'true',
+  },
   
   openWeather: {
     apiKey: process.env.OPENWEATHER_API_KEY,

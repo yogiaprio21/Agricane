@@ -26,7 +26,7 @@ import { fieldService } from '../services/field.service';
 import { monitoringService } from '../services/monitoring.service';
 import { Field, FieldHealth, NDVIData, DroneFlight } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Label } from 'recharts';
-import { Plus, Trash2, RefreshCw, Leaf, Plane, Activity } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Leaf, Plane, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
 import { Role } from '../types';
@@ -41,6 +41,7 @@ export const SatelliteMonitoring: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingFlight, setEditingFlight] = useState<DroneFlight | null>(null);
   const [flightToDelete, setFlightToDelete] = useState<DroneFlight | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -112,15 +113,27 @@ export const SatelliteMonitoring: React.FC = () => {
     }
   };
 
-  const handleOpenModal = () => {
-    setFormData({
-      fieldId: selectedFieldId,
-      flightDate: new Date().toISOString().split('T')[0],
-      duration: '',
-      altitudeMeters: '',
-      notes: '',
-      imageCount: '',
-    });
+  const handleOpenModal = (flight?: DroneFlight) => {
+    setEditingFlight(flight || null);
+    setFormData(
+      flight
+        ? {
+            fieldId: flight.fieldId || selectedFieldId,
+            flightDate: new Date(flight.flightDate).toISOString().split('T')[0],
+            duration: flight.duration.toString(),
+            altitudeMeters: flight.altitudeMeters.toString(),
+            notes: flight.notes || '',
+            imageCount: flight.imageCount?.toString() || '',
+          }
+        : {
+            fieldId: selectedFieldId,
+            flightDate: new Date().toISOString().split('T')[0],
+            duration: '',
+            altitudeMeters: '',
+            notes: '',
+            imageCount: '',
+          },
+    );
     setIsModalOpen(true);
   };
 
@@ -163,21 +176,32 @@ export const SatelliteMonitoring: React.FC = () => {
     }
 
     try {
-      await monitoringService.createDroneFlight({
-        fieldId: formData.fieldId,
-        operatorId: user?.id,
+      const payload = {
         flightDate: flightDate.toISOString(),
         duration,
         altitudeMeters,
         notes: formData.notes,
         imageCount,
-      });
+      };
+
+      if (editingFlight) {
+        await monitoringService.updateDroneFlight(editingFlight.id, payload);
+        setSuccess('Drone flight updated successfully');
+      } else {
+        await monitoringService.createDroneFlight({
+          fieldId: formData.fieldId,
+          operatorId: user?.id,
+          ...payload,
+        });
+        setSuccess('Drone flight logged successfully');
+      }
+
       setIsModalOpen(false);
-      setSuccess('Drone flight logged successfully');
+      setEditingFlight(null);
       loadFieldData();
     } catch (error) {
-      console.error('Failed to create drone flight:', error);
-      setError('Failed to create drone flight');
+      console.error('Failed to save drone flight:', error);
+      setError('Failed to save drone flight');
     }
   };
 
@@ -236,7 +260,7 @@ export const SatelliteMonitoring: React.FC = () => {
                 <Button onClick={handleFetchNDVI} disabled={isFetching || !selectedFieldId} isLoading={isFetching} leftIcon={<RefreshCw size={18} />}>
                   Fetch NDVI
                 </Button>
-                <Button onClick={handleOpenModal} leftIcon={<Plus size={18} />}>
+                <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={18} />}>
                   Log Drone Flight
                 </Button>
               </>
@@ -356,7 +380,7 @@ export const SatelliteMonitoring: React.FC = () => {
               description="Log a drone flight to track field observations and image counts."
               action={
                 !isReadOnly ? (
-                <Button onClick={handleOpenModal}>
+                <Button onClick={() => handleOpenModal()}>
                   <Plus size={18} className="mr-2" />
                   Log Drone Flight
                 </Button>
@@ -405,13 +429,22 @@ export const SatelliteMonitoring: React.FC = () => {
                           key: 'actions',
                           header: 'Actions',
                           render: (flight: DroneFlight) => (
-                            <IconButton
-                              label={`Delete flight log from ${format(new Date(flight.flightDate), 'MMM dd, yyyy')}`}
-                              onClick={() => setFlightToDelete(flight)}
-                              variant="danger"
-                            >
-                              <Trash2 size={18} />
-                            </IconButton>
+                            <div className="flex justify-end gap-2 md:justify-start">
+                              <IconButton
+                                label={`Edit flight log from ${format(new Date(flight.flightDate), 'MMM dd, yyyy')}`}
+                                onClick={() => handleOpenModal(flight)}
+                                variant="secondary"
+                              >
+                                <Edit size={18} />
+                              </IconButton>
+                              <IconButton
+                                label={`Delete flight log from ${format(new Date(flight.flightDate), 'MMM dd, yyyy')}`}
+                                onClick={() => setFlightToDelete(flight)}
+                                variant="danger"
+                              >
+                                <Trash2 size={18} />
+                              </IconButton>
+                            </div>
                           ),
                         },
                       ]
@@ -431,14 +464,23 @@ export const SatelliteMonitoring: React.FC = () => {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Log Drone Flight"
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingFlight(null);
+        }}
+        title={editingFlight ? 'Edit Drone Flight' : 'Log Drone Flight'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingFlight(null);
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>Create</Button>
+            <Button onClick={handleSubmit}>{editingFlight ? 'Update' : 'Create'}</Button>
           </>
         }
       >
