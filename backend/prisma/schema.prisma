@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  AGRONOMIST
+  DRONE_OPERATOR
+  TECHNICIAN
+  MANAGER
+  VIEWER
+}
+
+enum GrowthStatus {
+  PLANTED
+  GROWING
+  HARVEST_READY
+  HARVESTED
+}
+
+enum HealthStatus {
+  HEALTHY
+  MODERATE_STRESS
+  SEVERE_STRESS
+  UNKNOWN
+}
+
+enum NotificationType {
+  WEATHER_ALERT
+  IOT_ANOMALY
+  HARVEST_READY
+  HEALTH_DEGRADATION
+  SYSTEM_INFO
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          Role     @default(TECHNICIAN)
+  isActive      Boolean  @default(true)
+  refreshToken  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  droneFlights  DroneFlight[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Field {
+  id              String       @id @default(uuid())
+  name            String
+  latitude        Float
+  longitude       Float
+  locationName    String?
+  areaHectares    Float
+  sugarcaneVariety String
+  plantingDate    DateTime
+  growthStatus    GrowthStatus @default(PLANTED)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  sensorReadings  SensorReading[]
+  weatherData     WeatherData[]
+  ndviData        NDVIData[]
+  droneFlights    DroneFlight[]
+  aiDecisions     AIDecision[]
+
+  @@map("fields")
+}
+
+model WeatherData {
+  id            String   @id @default(uuid())
+  fieldId       String
+  field         Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  temperature   Float
+  humidity      Float
+  rainfall      Float
+  windSpeed     Float
+  pressure      Float
+  weatherDesc   String
+  forecastDate  DateTime?
+  recordedAt    DateTime @default(now())
+  source        String   @default("OpenWeatherMap")
+
+  @@index([fieldId, recordedAt])
+  @@map("weather_data")
+}
+
+model FAOReference {
+  id              String   @id @default(uuid())
+  category        String
+  subcategory     String
+  dataType        String
+  content         String   @db.Text
+  metadata        Json?
+  lastFetchedAt   DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@unique([category, subcategory, dataType])
+  @@map("fao_references")
+}
+
+model SensorReading {
+  id              String   @id @default(uuid())
+  fieldId         String
+  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  soilMoisture    Float
+  soilPH          Float
+  soilTemperature Float
+  timestamp       DateTime @default(now())
+
+  @@index([fieldId, timestamp])
+  @@map("sensor_readings")
+}
+
+model NDVIData {
+  id              String       @id @default(uuid())
+  fieldId         String
+  field           Field        @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  ndviValue       Float
+  healthStatus    HealthStatus
+  captureDate     DateTime
+  source          String       @default("Copernicus")
+  satellitePass   String?
+  cloudCover      Float?
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+
+  @@index([fieldId, captureDate])
+  @@map("ndvi_data")
+}
+
+model DroneFlight {
+  id              String   @id @default(uuid())
+  fieldId         String
+  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  operatorId      String
+  operator        User     @relation(fields: [operatorId], references: [id])
+  flightDate      DateTime
+  duration        Int
+  altitudeMeters  Float
+  notes           String?  @db.Text
+  imageCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([fieldId, flightDate])
+  @@map("drone_flights")
+}
+
+model AIDecision {
+  id                    String   @id @default(uuid())
+  fieldId               String
+  field                 Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  decisionType          String
+  recommendation        String   @db.Text
+  explanation           String   @db.Text
+  confidence            Float
+  contextData           Json
+  weatherFactors        Json?
+  soilFactors           Json?
+  ndviFactors           Json?
+  faoReferences         Json?
+  createdAt             DateTime @default(now())
+
+  @@index([fieldId, createdAt])
+  @@map("ai_decisions")
+}
+
+model Notification {
+  id              String               @id @default(uuid())
+  userId          String?
+  user            User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type            NotificationType
+  priority        NotificationPriority
+  title           String
+  message         String               @db.Text
+  metadata        Json?
+  isRead          Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+model SystemCache {
+  id              String   @id @default(uuid())
+  cacheKey        String   @unique
+  cacheValue      String   @db.Text
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([cacheKey, expiresAt])
+  @@map("system_cache")
+}

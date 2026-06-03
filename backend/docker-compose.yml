@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agricane_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agricane
+      POSTGRES_PASSWORD: agricane_secure_pass
+      POSTGRES_DB: agricane_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - agricane_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agricane_api
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://agricane:agricane_secure_pass@postgres:5432/agricane_db?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-refresh-secret}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+      COPERNICUS_CLIENT_ID: ${COPERNICUS_CLIENT_ID}
+      COPERNICUS_CLIENT_SECRET: ${COPERNICUS_CLIENT_SECRET}
+    depends_on:
+      - postgres
+    networks:
+      - agricane_network
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && node dist/main"
+
+volumes:
+  postgres_data:
+
+networks:
+  agricane_network:
+    driver: bridge
