@@ -24,6 +24,22 @@ async function bootstrap() {
       : (compression as any)();
   app.use(compressionMiddleware);
 
+  app.use((req: any, res: any, next: () => void) => {
+    if ((req.method === 'GET' || req.method === 'HEAD') && req.path === '/') {
+      if (req.method === 'HEAD') {
+        return res.status(200).end();
+      }
+
+      return res.status(200).json({
+        status: 'ok',
+        service: 'AgriCane Intelligence Platform API',
+        health: `/${apiPrefix}/health`,
+      });
+    }
+
+    return next();
+  });
+
   app.setGlobalPrefix(apiPrefix);
 
   app.enableCors({
