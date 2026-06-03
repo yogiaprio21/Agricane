@@ -1,12 +1,37 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { useAuth } from './hooks/useAuth';
+import { usePageMeta } from './hooks/usePageMeta';
 import { Spinner } from './components/common';
 import { Role } from './types';
 
 const Login = React.lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })));
+const PublicHome = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.PublicHome })),
+);
+const FeaturesPage = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.FeaturesPage })),
+);
+const UseCasesPage = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.UseCasesPage })),
+);
+const TechnologyPage = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.TechnologyPage })),
+);
+const DemoPage = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.DemoPage })),
+);
+const SugarcaneMonitoringPage = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.SugarcaneMonitoringPage })),
+);
+const PrecisionAgricultureDashboardPage = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.PrecisionAgricultureDashboardPage })),
+);
+const PublicNotFound = React.lazy(() =>
+  import('./pages/PublicPages').then((module) => ({ default: module.PublicNotFound })),
+);
 const Dashboard = React.lazy(() =>
   import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })),
 );
@@ -36,6 +61,12 @@ const Users = React.lazy(() => import('./pages/Users').then((module) => ({ defau
 
 const PrivateRoute: React.FC<{ children: React.ReactElement; roles?: Role[] }> = ({ children, roles }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
+
+  usePageMeta({
+    path: location.pathname,
+    robots: 'noindex, nofollow',
+  });
 
   if (isLoading) {
     return (
@@ -69,6 +100,13 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<RouteFallback />}>
             <Routes>
+              <Route path="/" element={<PublicHome />} />
+              <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/use-cases" element={<UseCasesPage />} />
+              <Route path="/technology" element={<TechnologyPage />} />
+              <Route path="/demo" element={<DemoPage />} />
+              <Route path="/sugarcane-monitoring" element={<SugarcaneMonitoringPage />} />
+              <Route path="/precision-agriculture-dashboard" element={<PrecisionAgricultureDashboardPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/fields" element={<PrivateRoute><Fields /></PrivateRoute>} />
@@ -80,7 +118,7 @@ function App() {
               <Route path="/ai" element={<PrivateRoute><AIRecommendations /></PrivateRoute>} />
               <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
               <Route path="/users" element={<PrivateRoute roles={[Role.ADMIN, Role.MANAGER]}><Users /></PrivateRoute>} />
-              <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route path="*" element={<PublicNotFound />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

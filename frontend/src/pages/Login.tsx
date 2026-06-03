@@ -12,10 +12,13 @@ export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  usePageMeta(
-    'AgriCane Demo Login',
-    'Sign in or open the read-only AgriCane portfolio demo for sugarcane field monitoring, IoT, weather, NDVI, drone, agronomy, and AI workflows.',
-  );
+  usePageMeta({
+    title: 'AgriCane Demo Login',
+    description:
+      'Sign in or open the read-only AgriCane portfolio demo for sugarcane field monitoring, IoT, weather, NDVI, drone, agronomy, and AI workflows.',
+    path: '/login',
+    robots: 'noindex, nofollow',
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
