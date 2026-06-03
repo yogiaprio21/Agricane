@@ -16,7 +16,6 @@ import {
   PaginationControls,
   ResponsiveTable,
   Select,
-  MetricStrip,
   SectionPanel,
   Skeleton,
 } from '../components/common';
@@ -236,6 +235,17 @@ export const Fields: React.FC = () => {
   const center: [number, number] = filteredFields.length > 0
     ? [filteredFields[0].latitude, filteredFields[0].longitude]
     : [-7.2504, 112.7688];
+  const totalArea = fields.reduce((sum, field) => sum + field.areaHectares, 0);
+  const statusSummary = [
+    { status: GrowthStatus.PLANTED, label: 'Planted', tone: 'bg-gray-400', text: 'text-gray-700' },
+    { status: GrowthStatus.GROWING, label: 'Growing', tone: 'bg-blue-500', text: 'text-blue-700' },
+    { status: GrowthStatus.HARVEST_READY, label: 'Harvest Ready', tone: 'bg-yellow-500', text: 'text-yellow-700' },
+    { status: GrowthStatus.HARVESTED, label: 'Harvested', tone: 'bg-green-500', text: 'text-green-700' },
+  ].map((item) => {
+    const count = fields.filter((field) => field.growthStatus === item.status).length;
+    const percentage = fields.length ? Math.round((count / fields.length) * 100) : 0;
+    return { ...item, count, percentage };
+  });
 
   return (
     <Layout>
@@ -311,18 +321,44 @@ export const Fields: React.FC = () => {
         </Card>
 
         <SectionPanel title="Field Statistics" subtitle="Current field portfolio by area and growth stage" className="pt-0">
-          <MetricStrip
-            className="xl:grid-cols-2"
-            items={[
-              { label: 'Total Fields', value: fields.length, tone: 'green' },
-              { label: 'Total Area', value: `${fields.reduce((sum, f) => sum + f.areaHectares, 0).toFixed(2)} ha`, tone: 'blue' },
-              ...(['PLANTED', 'GROWING', 'HARVEST_READY', 'HARVESTED'] as const).map((status) => ({
-                label: status.replace('_', ' '),
-                value: fields.filter((f) => f.growthStatus === status).length,
-                tone: status === 'HARVEST_READY' ? 'yellow' as const : 'gray' as const,
-              })),
-            ]}
-          />
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4 border-b border-gray-200 pb-5">
+              <div>
+                <p className="text-xs font-semibold uppercase text-gray-500">Total Fields</p>
+                <p className="mt-1 text-3xl font-bold leading-none text-gray-950">{fields.length}</p>
+                <p className="mt-1 text-sm text-gray-600">active plantation records</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase text-gray-500">Total Area</p>
+                <p className="mt-1 text-3xl font-bold leading-none text-gray-950">{totalArea.toFixed(1)} ha</p>
+                <p className="mt-1 text-sm text-gray-600">managed sugarcane land</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {statusSummary.map((item) => (
+                <div key={item.status}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${item.tone}`} />
+                      <span className="truncate text-sm font-semibold text-gray-900">{item.label}</span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className={`text-sm font-bold ${item.text}`}>{item.count}</span>
+                      <span className="text-sm text-gray-500"> / {item.percentage}%</span>
+                    </div>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className={`h-full rounded-full ${item.tone}`}
+                      style={{ width: `${item.percentage}%` }}
+                      aria-label={`${item.label}: ${item.count} fields, ${item.percentage}%`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </SectionPanel>
       </div>
 
